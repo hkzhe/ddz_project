@@ -56,12 +56,6 @@ return array(
 			'enableParamLogging'=> true,
 			'enableProfiling'=>true,
 		),
-		'cache' => array(
-        	'class'     => 'system.caching.CMemCache',
-        	'servers' => array(
-            	array('host' => '192.168.1.113', 'port' => 11211, 'weight' => 100 ),
-         	),
-    	),
 		// uncomment the following to use a MySQL database
 		/*
 		'db'=>array(
