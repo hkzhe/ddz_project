@@ -2,8 +2,19 @@ import SocketServer, time
 import cPickle
 import threading
 import struct
+import json
+
+COMMAND_TYPE_LOGIN=1
+COMMAND_TYPE_CHUPAI=2
   
 class GameServer(SocketServer.BaseRequestHandler):    
+    def process_cmd(self,jobject):
+        if jobject["cmd"] == "login" :
+            print "user: " + jobject["userID"] + " login"
+        elif jobject["cmd"] == "showcard":
+            u = jobject["userID"]
+            print "user : " + str(u) + " showcard: "
+            pokes = jobject["outPokes"]
     def handle(self):          
         while True:
             self.data = self.request.recv( 1024 ) 
@@ -16,12 +27,12 @@ class GameServer(SocketServer.BaseRequestHandler):
                 if  msg_len < 4 or msg_len > 10240 :
                     print "msg len error , len = " + msg_len
                 self.data = self.request.recv( msg_len )
-                msg_body = struct.unpack( "s" , self.data );
-                print msg_body
+                jobject = json.loads( self.data )
+                self.process_cmd( jobject )
             except struct.error:
                 print "unpack data exception: " + self.data
                 break
-            self.request.close()           
+        self.request.close()           
         print 'Disconnected from', self.client_address   
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):pass  
 if __name__ == '__main__':

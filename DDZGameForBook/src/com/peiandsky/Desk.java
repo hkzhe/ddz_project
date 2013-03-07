@@ -136,7 +136,7 @@ public class Desk {
 		if (currentPerson == 1 || currentPerson == 2) {
 			if (timeLimite <= 300) {
 				// 获取手中的牌中能够打过当前手牌
-				Card tempcard = persons[currentPerson].chupaiAI(currentCard);
+				Card tempcard = persons[currentPerson].chupaiAI(currentCard , currentPerson );
 				if (tempcard != null) {
 					// 手中有大过的牌，则出
 					currentCircle++;

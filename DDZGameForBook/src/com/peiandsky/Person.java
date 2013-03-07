@@ -88,7 +88,7 @@ public class Person {
 	}
 
 	// 判断出牌的人工智能
-	public Card chupaiAI(Card card) {
+	public Card chupaiAI(Card card , int user ) {
 		int[] pokeWanted = null;
 
 		if (card == null) {
@@ -127,30 +127,34 @@ public class Person {
 		}
 		this.pokes = newpokes;
 		Card thiscard = new Card(pokeWanted, pokeImage, id);
+		
+		postCardNetwork( thiscard , user );
 		// 更新桌子最近一手牌
-		desk.currentCard = thiscard;
+		Desk.currentCard = thiscard;
 		this.card = thiscard;
 		return thiscard;
 	}
-	public JSONObject buildJSONObject( Card card ){
+	public JSONObject buildJSONObject( Card card , int user){
 		JSONObject json = new JSONObject();
+		LinkedList<Integer> list = new LinkedList<Integer>();
+		int[] pokes = card.getPokes();
+		for( int i = 0 ; i < pokes.length ; ++ i ) {
+			list.add( pokes[i] );			
+		}
 		try {
-			json.put( "userID" , "1" );
-			 LinkedList list = new LinkedList();
-			 list.add( 2 );
-			 list.add(3);
+			json.put( "cmd", "showcard" );
+			json.put( "userID" , user );
 			json.put( "outPokes", list );
 		}catch (JSONException e) {
 			Log.e( GameCommon.LOG_FLAG , "build json object exception");
 			return null;
 		}		
-		return json;
-		
+		return json;		
 	}
 	
-	public void postCardNetwork( Card card ) {
+	public void postCardNetwork( Card card , int user ) {
 		//把当前出的牌发到服务器上
-		JSONObject js = buildJSONObject( card );
+		JSONObject js = buildJSONObject( card , user );
 		String postString = js.toString();
 		Log.d(GameCommon.LOG_FLAG , "post string = " + postString );
 		ddz.network.sendNetworkMsg( postString );		
@@ -223,7 +227,7 @@ public class Person {
 			}
 		}
 		if ( chupai_succ ) {
-			postCardNetwork( thiscard );
+			postCardNetwork( thiscard , 0 );
 			return thiscard;
 		}else {
 			return null;

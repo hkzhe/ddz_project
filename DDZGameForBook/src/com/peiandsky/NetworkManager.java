@@ -21,15 +21,7 @@ public class NetworkManager {
 
 		try {  
             _socket = new Socket( _host , _port ); 
-            return true;
-           // out = s.getOutputStream() ;
-           /* byte by[] = new byte[4];
-            int v = 10;
-            by[3] = (byte)(0xff & (v >> 24));
-            by[2] = (byte)(0xff & (v >> 16)); 
-            by[1] = (byte)(0xff & (v >> 8)); 
-            by[0] = (byte)(0xff & v) ;
-            s.close();*/     
+            return true;        
         } catch (UnknownHostException e) {  
         	Log.e( GameCommon.LOG_FLAG , "get unknown host exception");
             //e.printStackTrace();  

@@ -1,10 +1,16 @@
 package com.peiandsky;
 
+import java.util.LinkedList;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -122,6 +128,19 @@ public class MenuView extends SurfaceView implements SurfaceHolder.Callback,
 			}// 不断地循环，直到刷帧线程结束
 		}
 	}
+	public void login()
+	{
+		JSONObject json = new JSONObject();
+		try {
+			json.put( "cmd", "login" );
+			json.put( "userID" , "1" );
+		}catch (JSONException e) {
+			Log.e( GameCommon.LOG_FLAG , "build json object exception");
+			return ;
+		}
+		ddz.network.sendNetworkMsg( json.toString() );
+		Log.d( GameCommon.LOG_FLAG , "send login command , userid = 1");
+	}
 
 	@Override
 	public boolean onTouch(View v, MotionEvent event) {
@@ -139,6 +158,7 @@ public class MenuView extends SurfaceView implements SurfaceHolder.Callback,
 		System.out.println(selectIndex);
 		switch (selectIndex) {
 		case 0:
+			login();
 			ddz.handler.sendEmptyMessage(DDZ.GAME);
 			break;
 		case 1:
