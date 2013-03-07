@@ -10,6 +10,7 @@ import android.graphics.Paint.Align;
 import android.graphics.Paint.Style;
 import android.view.MotionEvent;
 import android.view.View;
+import android.util.Log;
 
 public class Desk {
 	public static int winId = -1;
@@ -35,7 +36,12 @@ public class Desk {
 	 * 0:游戏中 <br>
 	 * 1:游戏结束，重新来，活退出<br>
 	 */
-	private int op = -1;// 游戏的进度控制
+	public final static int GAME_STAT_DISPATCH_CARD = -2;
+	public final static int GAME_STAT_INITIALIZE = -1;
+	public final static int GAME_STAT_PLAYING 	   = 0;
+	public final static int GAME_STAT_GAME_END     = 1;	
+	private int  _game_op = GAME_STAT_INITIALIZE;// 游戏的进度控制
+	
 	public static int currentPerson = 0;// 当前操作的人
 	public static int currentCircle = 0;// 本轮次数
 	public static Card currentCard = null;// 最新的一手牌
@@ -65,17 +71,17 @@ public class Desk {
 	}
 
 	public void gameLogic() {
-		switch (op) {
-		case -2:
+		switch (_game_op) {
+		case GAME_STAT_DISPATCH_CARD:
 			break;
-		case -1:
+		case GAME_STAT_INITIALIZE:
 			init();
-			op = 0;
+			_game_op = GAME_STAT_PLAYING;
 			break;
-		case 0:
+		case GAME_STAT_PLAYING:
 			gaming();
 			break;
-		case 1:
+		case GAME_STAT_GAME_END:
 			break;
 		case 2:
 			break;
@@ -90,7 +96,7 @@ public class Desk {
 			// 当三个人中其中一个人牌的数量为0，则游戏结束
 			if (persons[k].pokes.length == 0) {
 				// 切换到游戏结束状态
-				op = 1;
+				_game_op = 1;
 				// 得到最先出去的人的id
 				winId = k;
 				// 判断哪方获胜
@@ -195,6 +201,7 @@ public class Desk {
 			}
 			System.out.println(sb.toString());
 		}
+		Log.d( GameCommon.LOG_FLAG , "Initialize game complete ");
 	}
 
 	// 随机地主，将三张底牌给地主
@@ -226,23 +233,21 @@ public class Desk {
 
 	public void paint(Canvas canvas) {
 
-		switch (op) {
-		case -2:
-			break;
-		case -1:
-			break;
-		case 0:
-			paintGaming(canvas);
-			break;
-		case 1:
-			paintResult(canvas);
-			break;
-		case 2:
-			break;
+		switch (_game_op) {
+			case GAME_STAT_DISPATCH_CARD:
+				break;
+			case GAME_STAT_INITIALIZE:
+				break;
+			case GAME_STAT_PLAYING :
+				paintGaming(canvas);
+				break;
+			case GAME_STAT_GAME_END:
+				paintResult(canvas);
+				break;
+			default:
+				break;
 		}
-
 	}
-
 	private void paintResult(Canvas canvas) {
 		Paint paint = new Paint();
 		paint.setColor(Color.WHITE);
@@ -341,20 +346,20 @@ public class Desk {
 	}
 
 	public void onTuch(View v, MotionEvent event) {
-		for (int i = 0; i < persons.length; i++) {
+		/*for (int i = 0; i < persons.length; i++) {
 			StringBuffer sb = new StringBuffer();
 			sb.append(i + " : ");
 			for (int j = 0; j < persons[i].pokes.length; j++) {
 				sb.append(persons[i].pokes[j]
 						+ (persons[i].pokes[j] >= 10 ? "" : " ") + ",");
 			}
-			System.out.println(sb.toString());
-		}
+			Log.d( GameCommon.LOG_FLAG , sb.toString() );
+		}*/
 
-		if (op == 1) {
-			System.out.println("ddz.handler:" + ddz.handler);
+		if (_game_op == GAME_STAT_GAME_END ) {
+			//System.out.println("ddz.handler:" + ddz.handler);
 			init();
-			op = 0;
+			_game_op = 0;
 			// ddz.handler.sendEmptyMessage(DDZActivity.MENU);
 		}
 		if (currentPerson != 0) {
@@ -364,7 +369,7 @@ public class Desk {
 		int y = (int) event.getY();
 
 		if (Poke.inRect(x, y, opPosX, opPosY, 38, 23)) {
-			System.out.println("chupai");
+			Log.d( GameCommon.LOG_FLAG , "player click chupai ");
 			Card card = persons[0].chupai(currentCard);
 			if (card != null) {
 				currentCard = card;
@@ -374,19 +379,18 @@ public class Desk {
 		}
 		if (currentCircle != 0) {
 			if (Poke.inRect(x, y, opPosX - 40, opPosY, 38, 23)) {
-				System.out.println("buyao");
+				Log.d( GameCommon.LOG_FLAG , "player click the giveup button");
 				buyao();
 			}
 		}
 		if (Poke.inRect(x, y, opPosX + 40, opPosY, 38, 23)) {
-			System.out.println("tishi");
+			Log.d( GameCommon.LOG_FLAG , "player click the hint button");
 			tishi();
 		}
 		persons[0].onTuch(v, event);
 	}
 
 	private void tishi() {
-
 	}
 	//不要牌的操作
 	private void buyao() {

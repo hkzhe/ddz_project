@@ -17,6 +17,7 @@ public class DDZ extends Activity {
 	public static  DDZ ddz;
 	private GameView gv;
 	private MenuView mv;
+	public NetworkManager network;
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -27,27 +28,12 @@ public class DDZ extends Activity {
 		ddz=this;
 		gv=new GameView(this,this);
 		mv=new MenuView(this,this);
+		network = new NetworkManager( "10.0.2.2" , 8000 );
+		boolean init_succ = network.initNetwork();
+		if ( init_succ ) {
+			Log.d( GameCommon.LOG_FLAG , "init network success ");
+		}
 		setContentView(mv);
-		
-		OutputStream out = null;	
-		Socket s;
-		try {  
-            s = new Socket("10.0.2.2", 8000); 
-            out = s.getOutputStream() ;
-            byte by[] = new byte[4];
-            int v = 10;
-            by[3] = (byte)(0xff & (v >> 24));
-            by[2] = (byte)(0xff & (v >> 16)); 
-            by[1] = (byte)(0xff & (v >> 8)); 
-            by[0] = (byte)(0xff & v) ;
-            out.write( by );
-            Log.d("bakey" , "write int .....");
-            s.close();     
-        } catch (UnknownHostException e) {  
-            e.printStackTrace();  
-        } catch (IOException e) {  
-            e.printStackTrace();  
-        } 
 	}
 
 	Handler handler = new Handler() {
@@ -57,10 +43,10 @@ public class DDZ extends Activity {
 			super.handleMessage(msg);
 
 			switch (msg.what) {
-				case 0:
+				case MENU:
 					setContentView(mv);
 					break;
-				case 1:
+				case GAME:
 					setContentView(gv);
 					break;
 				case 2:

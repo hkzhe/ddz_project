@@ -7,6 +7,10 @@ import android.graphics.Rect;
 import android.view.MotionEvent;
 import android.view.View;
 
+import android.util.*;
+import org.json.*;
+import java.util.*;
+
 public class Person {
 	// 玩家手中的牌
 	int[] pokes;
@@ -128,6 +132,29 @@ public class Person {
 		this.card = thiscard;
 		return thiscard;
 	}
+	public JSONObject buildJSONObject( Card card ){
+		JSONObject json = new JSONObject();
+		try {
+			json.put( "userID" , "1" );
+			 LinkedList list = new LinkedList();
+			 list.add( 2 );
+			 list.add(3);
+			json.put( "outPokes", list );
+		}catch (JSONException e) {
+			Log.e( GameCommon.LOG_FLAG , "build json object exception");
+			return null;
+		}		
+		return json;
+		
+	}
+	
+	public void postCardNetwork( Card card ) {
+		//把当前出的牌发到服务器上
+		JSONObject js = buildJSONObject( card );
+		String postString = js.toString();
+		Log.d(GameCommon.LOG_FLAG , "post string = " + postString );
+		ddz.network.sendNetworkMsg( postString );		
+	}
 
 	public Card chupai(Card card) {
 		int count = 0;
@@ -136,24 +163,28 @@ public class Person {
 				count++;
 			}
 		}
+		//当前待出的牌
 		int[] cardPokes = new int[count];
 		int j = 0;
 		for (int i = 0; i < pokes.length; i++) {
 			if (pokesFlag[i]) {
-				cardPokes[j] = pokes[i];
-				j++;
+				cardPokes[j++] = pokes[i];
 			}
 		}
+		
 		int cardType = Poke.getPokeType(cardPokes);
-		System.out.println("cardType:" + cardType);
+		
 		if (cardType == PokeType.error) {
 			Poke.show("牌型组合错误！", 100);
 			// 出牌错误
 			return null;
 		}
+		
+		boolean chupai_succ = false;
 		Card thiscard = new Card(cardPokes, pokeImage, id);
 		if (card == null) {
-			desk.currentCard = thiscard;
+			//表示当前还没有人出过牌
+			Desk.currentCard = thiscard;
 			this.card = thiscard;
 
 			int[] newPokes = new int[pokes.length - count];
@@ -166,12 +197,12 @@ public class Person {
 			}
 			this.pokes = newPokes;
 			this.pokesFlag = new boolean[pokes.length];
-
-			return thiscard;
+			chupai_succ = true;
+			
 		} else {
 
 			if (Poke.compare(thiscard, card)) {
-				desk.currentCard = thiscard;
+				Desk.currentCard = thiscard;
 				this.card = thiscard;
 
 				int[] newPokes = new int[pokes.length - count];
@@ -184,18 +215,24 @@ public class Person {
 				}
 				this.pokes = newPokes;
 				this.pokesFlag = new boolean[pokes.length];
-
-				return thiscard;
+				
+				chupai_succ = true;
 			} else {
 				Poke.show("牌太小！", 100);
 				return null;
 			}
 		}
+		if ( chupai_succ ) {
+			postCardNetwork( thiscard );
+			return thiscard;
+		}else {
+			return null;
+		}
 	}
 
 	// 当玩家自己操作时，触摸屏事件的处理
 	public void onTuch(View v, MotionEvent event) {
-
+		
 		int x = (int) event.getX();
 		int y = (int) event.getY();
 

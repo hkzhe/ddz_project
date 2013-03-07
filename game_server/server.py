@@ -12,12 +12,12 @@ class GameServer(SocketServer.BaseRequestHandler):
                 break
             try:
                 msg_len = struct.unpack( "i" , self.data )
-                print msg_len
-                if  msg_len < 4 || msg_len > 10240 :
+                msg_len = msg_len[0]
+                if  msg_len < 4 or msg_len > 10240 :
                     print "msg len error , len = " + msg_len
                 self.data = self.request.recv( msg_len )
-                #接收剩下的数据
                 msg_body = struct.unpack( "s" , self.data );
+                print msg_body
             except struct.error:
                 print "unpack data exception: " + self.data
                 break

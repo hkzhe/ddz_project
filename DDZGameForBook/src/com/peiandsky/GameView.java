@@ -28,21 +28,26 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,
 			while(threadFlag)
 			{
 				desk.gameLogic();
-			try {
-				canvas = holder.lockCanvas();
-				onDraw(canvas);
-			} finally {
-				holder.unlockCanvasAndPost(canvas);
-			}
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+				try {
+					canvas = holder.lockCanvas();
+					//onDraw(canvas);
+					myDraw( canvas );
+				} finally {
+					holder.unlockCanvasAndPost(canvas);
+				}
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 
 	};
+	protected void myDraw( Canvas canvas ) {
+		canvas.drawBitmap(gameBack, 0, 0, null);
+		desk.paint(canvas);
+	}
 
 	public GameView(Context context, DDZ ddz) {
 		super(context);

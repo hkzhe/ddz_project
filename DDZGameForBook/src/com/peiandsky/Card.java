@@ -3,13 +3,17 @@ package com.peiandsky;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Rect;
-
+import android.util.*;
 public class Card {
 	int value=0;
 	int pokeType=0;
 	int[] pokes;
 	Bitmap pokeImage;
 	int personID;
+	
+	public int[] getPokes() {
+		return pokes;
+	}
 	public Card(int[] pokes,Bitmap pokeImage,int id)
 	{
 		this.personID=id;
