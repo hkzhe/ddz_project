@@ -7,12 +7,10 @@ class GameLogic:
 		pass
 	def shuffle():
 		print "shuffle"
-	def parse_json( this,str ):
-		return json.loads( str )
-	def process_msg( this , str ):
-		msg = parse_json( str )
-		if msg.type == "login":
-			process_login( msg )
+
+	def process_user_login( this ):
+		print "user login"
+
 	def process_show_cards( msg ):
 		print "process_show_cards"
 if __name__ == '__main__':

@@ -3,14 +3,15 @@ import cPickle
 import threading
 import struct
 import json
+import GameLogic
 
 COMMAND_TYPE_LOGIN=1
 COMMAND_TYPE_CHUPAI=2
-  
-class GameServer(SocketServer.BaseRequestHandler):    
+game_mgr = None
+class GameServer(SocketServer.BaseRequestHandler):   
     def process_cmd(self,jobject):
         if jobject["cmd"] == "login" :
-            print "user: " + jobject["userID"] + " login"
+            game_mgr.process_user_login( jobject )
         elif jobject["cmd"] == "showcard":
             u = jobject["userID"]
             print "user : " + str(u) + " showcard: "
@@ -36,6 +37,7 @@ class GameServer(SocketServer.BaseRequestHandler):
         print 'Disconnected from', self.client_address   
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):pass  
 if __name__ == '__main__':
+    game_mgr = GameLogic
     print 'Server is started\nwaiting for connection...'   
     try:
         srvr = SocketServer.ThreadingTCPServer(  ("",8000)   , GameServer)
