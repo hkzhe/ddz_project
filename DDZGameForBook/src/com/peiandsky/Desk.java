@@ -53,6 +53,7 @@ public class Desk {
 	private int[][] timeLimitePos = { { 130, 205 }, { 118, 76 }, { 327, 76 } };
 	private int opPosX = 240;
 	private int opPosY = 200;
+	private boolean _gotCardsInfo ;
 
 	DDZ ddz;
 
@@ -66,8 +67,15 @@ public class Desk {
 				.decodeResource(ddz.getResources(), R.drawable.cp1);
 		chupai = BitmapFactory.decodeResource(ddz.getResources(),
 				R.drawable.cp2);
+		this._gotCardsInfo = true;
 		// init();
 
+	}
+	public boolean gotCardsInfo() {
+		return this._gotCardsInfo;		
+	}
+	public boolean setCardsInfo( ) {
+		return true;
 	}
 
 	public void gameLogic() {
@@ -155,7 +163,11 @@ public class Desk {
 	}
 
 	public void init() {
-		deskPokes = new int[54];
+		if ( !gotCardsInfo() ){
+			return ;
+		}else {
+		}
+		/*deskPokes = new int[54];
 		personPokes = new int[3][17];
 		threePokes = new int[3];
 
@@ -201,7 +213,7 @@ public class Desk {
 			}
 			System.out.println(sb.toString());
 		}
-		Log.d( GameCommon.LOG_FLAG , "Initialize game complete ");
+		Log.d( GameCommon.LOG_FLAG , "Initialize game complete ");*/
 	}
 
 	// 随机地主，将三张底牌给地主

@@ -1,6 +1,6 @@
 package com.peiandsky;
 
-import java.util.LinkedList;
+//import java.util.LinkedList;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -81,6 +81,7 @@ public class MenuView extends SurfaceView implements SurfaceHolder.Callback,
 
 	};
 
+
 	@Override
 	protected void onDraw(Canvas canvas) {
 		Paint paint = new Paint();
@@ -128,37 +129,40 @@ public class MenuView extends SurfaceView implements SurfaceHolder.Callback,
 			}// 不断地循环，直到刷帧线程结束
 		}
 	}
-	public void login()
+	public void login( String userID )
 	{
 		JSONObject json = new JSONObject();
 		try {
 			json.put( "cmd", "login" );
-			json.put( "userID" , "1" );
+			json.put( "userID" , userID );
 		}catch (JSONException e) {
 			Log.e( GameCommon.LOG_FLAG , "build json object exception");
 			return ;
 		}
-		ddz.network.sendNetworkMsg( json.toString() );
-		Log.d( GameCommon.LOG_FLAG , "send login command , userid = 1");
+		int send_ret = ddz.network.sendNetworkMsg( json.toString() );
+		if ( send_ret < 0 ) {
+			Log.e( GameCommon.LOG_FLAG , "send msg failed . ret = " + send_ret );
+			return ;
+		}
+		Log.d( GameCommon.LOG_FLAG , "send login command , userid = " + userID );
 	}
+
 
 	@Override
 	public boolean onTouch(View v, MotionEvent event) {
 		int ex = (int) event.getX();
 		int ey = (int) event.getY();
-		System.out.println(event.getX() + "," + event.getY());
 		int selectIndex = -1;
 		for (int i = 0; i < menuItems.length; i++) {
-			System.out.println(x+"  "+(y+i*43));
 			if (Poke.inRect(ex, ey, x, y + i * 43, 125, 33)) {
 				selectIndex = i;
 				break;
 			}
 		}
-		System.out.println(selectIndex);
 		switch (selectIndex) {
 		case 0:
-			login();
+			login( "0" );
+			//String str_msg = ddz.network.recvMsg();
 			ddz.handler.sendEmptyMessage(DDZ.GAME);
 			break;
 		case 1:
