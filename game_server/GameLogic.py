@@ -30,7 +30,7 @@ class GameLogic:
 	def build_dispatch_cards_command( self , player ):
 		cmd_dict = {}
 		cmd_dict["userID"] = player.get_id()
-		cmd_dict["cards"] = player.get_cards()
+		cmd_dict["pokes"] = player.get_cards()
 		cmd_dict["cmd"] = "start_game"
 		return json.dumps( cmd_dict )
  

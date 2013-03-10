@@ -11,6 +11,7 @@ import android.graphics.Paint.Style;
 import android.view.MotionEvent;
 import android.view.View;
 import android.util.Log;
+import org.json.*;
 
 public class Desk {
 	public static int winId = -1;
@@ -74,7 +75,19 @@ public class Desk {
 	public boolean gotCardsInfo() {
 		return this._gotCardsInfo;		
 	}
-	public boolean setCardsInfo( ) {
+	public synchronized boolean setCardsInfo( JSONObject json ) {
+		try {
+			JSONArray pokes = json.getJSONArray( "pokes" );
+			int userID = json.getInt("userID");
+			for( int i = 0 ; i < 17 ; i ++ ) {
+				personPokes[userID][i] = pokes.getInt( i );
+			}
+			
+			
+		}catch(JSONException e ) {
+			Log.e( GameCommon.LOG_FLAG , "get json array of cards failed ");
+			return false;
+		}
 		return true;
 	}
 

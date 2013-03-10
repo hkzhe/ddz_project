@@ -1,4 +1,5 @@
 package com.peiandsky;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 import android.content.Context;
@@ -55,6 +56,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,
 					JSONObject json = new JSONObject( recvMsg );
 					if ( json.getString( "cmd") == "start_game" ) {
 						//start game
+						desk.setCardsInfo( json );
 					}
 				}catch( JSONException e ) {
 					e.printStackTrace();
