@@ -54,7 +54,8 @@ public class Desk {
 	private int[][] timeLimitePos = { { 130, 205 }, { 118, 76 }, { 327, 76 } };
 	private int opPosX = 240;
 	private int opPosY = 200;
-	private boolean _gotCardsInfo ;
+	private boolean _gotPokesInfo ;
+	private String _userID;
 
 	DDZ ddz;
 
@@ -68,21 +69,68 @@ public class Desk {
 				.decodeResource(ddz.getResources(), R.drawable.cp1);
 		chupai = BitmapFactory.decodeResource(ddz.getResources(),
 				R.drawable.cp2);
-		this._gotCardsInfo = true;
-		// init();
-
+		this._gotPokesInfo = false ;
+		deskPokes = new int[54];
+		personPokes = new int[3][17];
+		threePokes = new int[3];
+		
+		_userID = "0";
 	}
-	public boolean gotCardsInfo() {
-		return this._gotCardsInfo;		
+	public boolean gotPokesInfo() {
+		return this._gotPokesInfo;		
+	}
+	public void initialize() {
+		winId = -1;
+		currentScore = 3;
+		currentCard = null;
+		currentCircle = 0;
+		currentPerson = 0;
+		for (int i = 0; i < deskPokes.length; i++) {
+			deskPokes[i] = i;
+		}
 	}
 	public synchronized boolean setCardsInfo( JSONObject json ) {
+		initialize();
 		try {
-			JSONArray pokes = json.getJSONArray( "pokes" );
-			int userID = json.getInt("userID");
-			for( int i = 0 ; i < 17 ; i ++ ) {
-				personPokes[userID][i] = pokes.getInt( i );
+			JSONArray users = json.getJSONArray( "users" );
+			int ulen = users.length();
+			int cur_user = 0;
+			for ( int i = 0 ; i < ulen ; i ++ ) {
+				String uid = users.getString( i );
+				Log.d( GameCommon.LOG_FLAG , "get uid = " + uid );
+				JSONArray pokes = json.getJSONArray( uid );
+				for ( int j = 0 ; j < pokes.length() ; j ++ ) {
+					personPokes[ cur_user ][j] = pokes.getInt( j );					
+				}	
+				++ cur_user;
 			}
-			
+			JSONArray threeLeftPokes = json.getJSONArray( "three_left" );
+			for( int i = 0 ; i < threeLeftPokes.length() ; i ++ ) 
+			{
+				threePokes[ i ] = threeLeftPokes.getInt( i );
+			}
+			persons[0] = new Person(personPokes[0], 234, 96, PokeType.dirH, 0,
+					this, ddz);
+			persons[1] = new Person(personPokes[1], 54, 28, PokeType.dirV, 1, this,
+					ddz);
+			persons[2] = new Person(personPokes[2], 54, 417, PokeType.dirV, 2,
+					this, ddz);
+			persons[0].setPosition(persons[1], persons[2]);
+			persons[1].setPosition(persons[2], persons[0]);
+			persons[2].setPosition(persons[0], persons[1]);
+			setBoss( json.getInt( "boss" ) );
+			Log.d( GameCommon.LOG_FLAG , "boss = " + boss );
+			AnalyzePoke ana = AnalyzePoke.getInstance();
+
+			for (int i = 0; i < persons.length; i++) {
+				boolean b = ana.testAnalyze(personPokes[i]);
+				if (!b) {
+					init();
+					Log.d( GameCommon.LOG_FLAG , "restart the game ");
+					break;
+				}
+			}
+			this._gotPokesInfo = true;			
 			
 		}catch(JSONException e ) {
 			Log.e( GameCommon.LOG_FLAG , "get json array of cards failed ");
@@ -96,8 +144,10 @@ public class Desk {
 		case GAME_STAT_DISPATCH_CARD:
 			break;
 		case GAME_STAT_INITIALIZE:
-			init();
-			_game_op = GAME_STAT_PLAYING;
+			boolean got_pokes = init();
+			if ( got_pokes ) {
+				_game_op = GAME_STAT_PLAYING;
+			}
 			break;
 		case GAME_STAT_PLAYING:
 			gaming();
@@ -175,11 +225,12 @@ public class Desk {
 
 	}
 
-	public void init() {
-		if ( !gotCardsInfo() ){
+	public boolean init() {
+		return gotPokesInfo();
+		/*if ( !gotCardsInfo() ){
 			return ;
 		}else {
-		}
+		}*/
 		/*deskPokes = new int[54];
 		personPokes = new int[3][17];
 		threePokes = new int[3];
@@ -232,6 +283,19 @@ public class Desk {
 	// 随机地主，将三张底牌给地主
 	private void randDZ() {
 		boss = Poke.getDZ();
+		currentPerson = boss;
+		int[] newPersonPokes = new int[20];
+		for (int i = 0; i < 17; i++) {
+			newPersonPokes[i] = personPokes[boss][i];
+		}
+		newPersonPokes[17] = threePokes[0];
+		newPersonPokes[18] = threePokes[1];
+		newPersonPokes[19] = threePokes[2];
+		personPokes[boss] = newPersonPokes;
+	}
+	
+	private void setBoss( int theBoss ) {
+		boss = theBoss;
 		currentPerson = boss;
 		int[] newPersonPokes = new int[20];
 		for (int i = 0; i < 17; i++) {

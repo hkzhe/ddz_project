@@ -23,22 +23,31 @@ class GameLogic:
 	def dispatch_cards( self , players ):
 		for i in range( 51 ):
 			players[ i / 17 ].set_my_card( i % 17 , self._pokes[i] )
+		for i in range( 3 ):
+			players[ i ].sort()
+
 		self._three_left_pokes[ 0 ] = self._pokes[ 51 ]
 		self._three_left_pokes[ 1 ] = self._pokes[ 52 ]
 		self._three_left_pokes[ 2 ] = self._pokes[ 53 ] 
 
-	def build_dispatch_cards_command( self , player ):
+	def build_dispatch_cards_command( self , players ):
 		cmd_dict = {}
-		cmd_dict["userID"] = player.get_id()
-		cmd_dict["pokes"] = player.get_cards()
-		cmd_dict["cmd"] = "start_game"
+		user_id_list = []
+		for player in players:
+			uid = player.get_id()
+			user_id_list.append( uid )
+			cmd_dict[ uid ] = player.get_cards()
+		cmd_dict[ "users" ] = user_id_list
+		cmd_dict["cmd"] = 1
+		cmd_dict["three_left"] = self._three_left_pokes
+		cmd_dict["boss"] = random.randint(0,2)
 		return json.dumps( cmd_dict )
  
 
 	def notify_game_start( self , players ):
 		self.shuffle()
 		self.dispatch_cards( players )
-		cmd = self.build_dispatch_cards_command( players[0] )
+		cmd = self.build_dispatch_cards_command( players )
 		print "command = " + cmd
 		self._server.send_cmd( players[0] , cmd )
 		#for player in players:
@@ -60,9 +69,9 @@ class GameLogic:
 	def process_show_cards( self , msg ):
 		print "process_show_cards"
 if __name__ == '__main__':
-	cmd_len = 5
-	bin_str = struct.pack( "i" , cmd_len )
-	aa = struct.unpack( "i" , bin_str )
-	print aa
+	cmd_dict = {}
+	cmd_dict['userID'] = 'aa'
+
+	print json.dumps( cmd_dict )
 	
 

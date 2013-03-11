@@ -16,6 +16,7 @@ import android.util.Log;
 public class GameView extends SurfaceView implements SurfaceHolder.Callback,
 		OnTouchListener {
 	DDZ ddz;
+	private static int COMMAND_START_GAME = 1;
 	boolean threadFlag=true;
 	
 	Desk desk;
@@ -48,26 +49,25 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,
 	};
 	Thread networkThread = new Thread(){
 		@Override
-		public void run() {
-			
+		public void run() {			
 			while ( true ) {
 				String recvMsg = ddz.network.recvMsg();
 				try {
 					JSONObject json = new JSONObject( recvMsg );
-					if ( json.getString( "cmd") == "start_game" ) {
+					int cmd = json.getInt("cmd");
+					if ( cmd == COMMAND_START_GAME ) {
 						//start game
 						desk.setCardsInfo( json );
 					}
+					else {
+						Log.e( GameCommon.LOG_FLAG , "get command : " + cmd );
+					}
 				}catch( JSONException e ) {
 					e.printStackTrace();
-					Log.e( GameCommon.LOG_FLAG , "get json object form string : " + recvMsg + " failed");
-					continue;
+					Log.e( GameCommon.LOG_FLAG , "get json object from string : " + recvMsg + " failed");
+					break;
 				}
 			}
-			
-			
-			//收到信息后，post到
-			//desk.();
 		}
 	};
 	protected void myDraw( Canvas canvas ) {
