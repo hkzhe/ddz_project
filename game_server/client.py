@@ -2,6 +2,7 @@ import socket
 import json
 import struct
 import sys
+import time
 
 def build_login_cmd():
 	cmd_dict = {}
@@ -27,4 +28,5 @@ if __name__ == '__main__':
 	cmd = build_login_cmd()
 	send_cmd( sock , cmd )
 	recv_cmd( sock )
+	time.sleep(10)
 
