@@ -5,12 +5,13 @@ import struct
 import json
 import GameLogic
 import Player
+import socket
 
 COMMAND_TYPE_LOGIN=1
 COMMAND_TYPE_CHUPAI=2
 game_mgr = None
 class GameServer(SocketServer.BaseRequestHandler):  
-    def send_cmd( self , player , cmd_body ):
+    def send_cmd( self , cmd_body ):
         cmd_len = len( cmd_body )
         command_head = struct.pack( "i" , cmd_len ) 
         self.request.sendall( command_head );
@@ -21,16 +22,25 @@ class GameServer(SocketServer.BaseRequestHandler):
             global game_mgr
             if game_mgr is None:
                 game_mgr =  GameLogic.GameLogic( self )
+<<<<<<< HEAD
             game_mgr.process_user_login( jobject )
         elif jobject["cmd"] == "outcard":
+=======
+            game_mgr.process_user_login( self , jobject )
+            self._user_id = jobject['userID']
+        elif jobject["cmd"] == "showcard":
+>>>>>>> d707b8bdee72e7051e300e4cc4fb0a67597cdd66
             u = jobject["userID"]
             pokes = jobject["outPokes"]
             game_mgr.process_out_cards( jobject )
     def handle(self):          
         while True:
-            self.data = self.request.recv( 4 ) 
-            if not self.data:
-                print "recv data error"
+            try:
+                self.data = self.request.recv( 4 ) 
+                if not self.data:
+                    print "recv data error"
+                    break
+            except socket.error:
                 break
             try:
                 msg_len = struct.unpack( "i" , self.data )
@@ -45,6 +55,10 @@ class GameServer(SocketServer.BaseRequestHandler):
                 break
         self.request.close()           
         print 'Disconnected from', self.client_address   
+        if game_mgr is not None:
+            game_mgr.remove_user_gateway_map( self._user_id ) 
+
+    
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):pass  
 if __name__ == '__main__':
     print 'Server is started\nwaiting for connection...'   

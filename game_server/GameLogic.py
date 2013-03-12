@@ -5,13 +5,14 @@ import Table
 import struct
 
 class GameLogic:
-
+	COMMAND_TYPE_GAME_START = 1
 	def __init__( self , server ):
 		print 'init game logic'
 		self._table_mgr = Table.TableManager( self )
 		self._server = server
 		self._pokes = [ i for i in range(54) ]
 		self._three_left_pokes = [ i for i in range(3) ]
+		self._user_gate_map = {}
 
 	def shuffle( self  ):
 		#对于54张牌中的任何一张，都随机找一张和它互换，将牌顺序打乱。
@@ -38,7 +39,7 @@ class GameLogic:
 			user_id_list.append( uid )
 			cmd_dict[ uid ] = player.get_cards()
 		cmd_dict[ "users" ] = user_id_list
-		cmd_dict["cmd"] = 1
+		cmd_dict["cmd"] = GameLogic.COMMAND_TYPE_GAME_START
 		cmd_dict["three_left"] = self._three_left_pokes
 		cmd_dict["boss"] = random.randint(0,2)
 		return json.dumps( cmd_dict )
@@ -49,18 +50,18 @@ class GameLogic:
 		self.dispatch_cards( players )
 		cmd = self.build_dispatch_cards_command( players )
 		print "command = " + cmd
-		self._server.send_cmd( players[0] , cmd )
-	
-		#for player in players:
-		#	cmd = build_dispatch_cards_command( player )
-		#	self._server.send_cmd( player , cmd )
+		for player in players:
+			uid = player.get_id()
+			if uid in self._user_gate_map:
+				self._user_gate_map[ uid ].send_cmd( cmd )
 			
 
 
-	def process_user_login( self , json_object ):
+	def process_user_login( self , gateway_server , json_object ):
 		user_id = json_object["userID"]
 		table_id = self._table_mgr.get_waiting_table()
-		print "user : %s login " %( user_id ) 
+		self._user_gate_map[ user_id ] = gateway_server
+		print "user : %s login with server: %d" %( user_id , id(gateway_server) ) 	
 
 		if table_id < 0:
 			table_id = self._table_mgr.create_new_table( user_id )
@@ -71,11 +72,19 @@ class GameLogic:
 		uid = json_object["userID"]
 		pokes = json_object["outPokes"]
 		self._table_mgr.player_out_pokes( uid , pokes )
-		print "process_show_cards"
-if __name__ == '__main__':
-	cmd_dict = {}
-	cmd_dict['userID'] = 'aa'
+	def remove_user_gateway_map( self , uid ):
+		print 'remove user id : %s mapping info' %( uid ) 
+		if uid in self._user_gate_map:
+			self._user_gate_map.pop( uid )
 
-	print json.dumps( cmd_dict )
+if __name__ == '__main__':
+	a = None
+	if a is not None:
+		print 'aa'
+	else:
+		print 'bb'
+	#cmd_dict = {}
+	#cmd_dict['userID'] = 'aa'
+	#print json.dumps( cmd_dict )
 	
 
