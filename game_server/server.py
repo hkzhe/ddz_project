@@ -6,6 +6,7 @@ import json
 import GameLogic
 import Player
 import socket
+import thread
 
 COMMAND_TYPE_LOGIN=1
 COMMAND_TYPE_CHUPAI=2
@@ -18,20 +19,17 @@ class GameServer(SocketServer.BaseRequestHandler):
         self.request.sendall( cmd_body ) 
         print "send command complete "
     def process_cmd(self,jobject):
+        global game_mgr
         if jobject["cmd"] == "login" :
-            global game_mgr
+            self._user_id = jobject["userID"]
             if game_mgr is None:
                 game_mgr =  GameLogic.GameLogic( self )
-<<<<<<< HEAD
-            game_mgr.process_user_login( jobject )
-        elif jobject["cmd"] == "outcard":
-=======
             game_mgr.process_user_login( self , jobject )
-            self._user_id = jobject['userID']
-        elif jobject["cmd"] == "showcard":
->>>>>>> d707b8bdee72e7051e300e4cc4fb0a67597cdd66
-            u = jobject["userID"]
+        elif jobject["cmd"] == "outcard":
+            uid = jobject["userID"]
             pokes = jobject["outPokes"]
+            if game_mgr is None:
+                print "error , user not loggin : %d" %( u )
             game_mgr.process_out_cards( jobject )
     def handle(self):          
         while True:

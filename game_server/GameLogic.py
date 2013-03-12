@@ -3,6 +3,7 @@ import json
 import random
 import Table
 import struct
+import thread
 
 class GameLogic:
 	COMMAND_TYPE_GAME_START = 1
@@ -13,6 +14,7 @@ class GameLogic:
 		self._pokes = [ i for i in range(54) ]
 		self._three_left_pokes = [ i for i in range(3) ]
 		self._user_gate_map = {}
+		self._lock = thread.allocate_lock() 
 
 	def shuffle( self  ):
 		#对于54张牌中的任何一张，都随机找一张和它互换，将牌顺序打乱。
@@ -41,7 +43,9 @@ class GameLogic:
 		cmd_dict[ "users" ] = user_id_list
 		cmd_dict["cmd"] = GameLogic.COMMAND_TYPE_GAME_START
 		cmd_dict["three_left"] = self._three_left_pokes
-		cmd_dict["boss"] = random.randint(0,2)
+		boss_index = random.randint( 0 , 2 )
+		boss_id = players[ boss_index ].get_id()
+		cmd_dict["boss"] = boss_id 
 		return json.dumps( cmd_dict )
  
 
@@ -54,8 +58,15 @@ class GameLogic:
 			uid = player.get_id()
 			if uid in self._user_gate_map:
 				self._user_gate_map[ uid ].send_cmd( cmd )
-			
 
+	def send_out_pokes_result( self , out_poke_user , players , out_pokes):
+		for p in players:
+			cmd_dict = {}
+			cmd_dict["user"] = 	out_poke_user
+			cmd_dict["out_pokes"] = out_pokes
+			cmd_dict["success"] = True
+			server = self._user_gate_map[ p.get_id() ]
+			server.send_cmd( json.dumps( cmd_dict) )
 
 	def process_user_login( self , gateway_server , json_object ):
 		user_id = json_object["userID"]
@@ -72,10 +83,13 @@ class GameLogic:
 		uid = json_object["userID"]
 		pokes = json_object["outPokes"]
 		self._table_mgr.player_out_pokes( uid , pokes )
+
 	def remove_user_gateway_map( self , uid ):
-		print 'remove user id : %s mapping info' %( uid ) 
+		self._lock.acquire()
 		if uid in self._user_gate_map:
 			self._user_gate_map.pop( uid )
+		self._table_mgr.remove_user( uid )
+		self._lock.release()
 
 if __name__ == '__main__':
 	a = None
