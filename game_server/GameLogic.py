@@ -50,6 +50,7 @@ class GameLogic:
 		cmd = self.build_dispatch_cards_command( players )
 		print "command = " + cmd
 		self._server.send_cmd( players[0] , cmd )
+	
 		#for player in players:
 		#	cmd = build_dispatch_cards_command( player )
 		#	self._server.send_cmd( player , cmd )
@@ -66,7 +67,10 @@ class GameLogic:
 
 		self._table_mgr.assign_user_to_table( table_id , user_id )
 
-	def process_show_cards( self , msg ):
+	def process_out_cards( self , json_object ):
+		uid = json_object["userID"]
+		pokes = json_object["outPokes"]
+		self._table_mgr.player_out_pokes( uid , pokes )
 		print "process_show_cards"
 if __name__ == '__main__':
 	cmd_dict = {}

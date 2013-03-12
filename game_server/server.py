@@ -22,10 +22,10 @@ class GameServer(SocketServer.BaseRequestHandler):
             if game_mgr is None:
                 game_mgr =  GameLogic.GameLogic( self )
             game_mgr.process_user_login( jobject )
-        elif jobject["cmd"] == "showcard":
+        elif jobject["cmd"] == "outcard":
             u = jobject["userID"]
             pokes = jobject["outPokes"]
-            print "user : " + str(u) + " showcard: " + pokes            
+            game_mgr.process_out_cards( jobject )
     def handle(self):          
         while True:
             self.data = self.request.recv( 4 ) 

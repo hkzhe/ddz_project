@@ -10,6 +10,10 @@ class Player:
 		return self._id
 	def get_cards( self ):
 		return self._cards
+	def out_pokes( self , opokes ):
+		for p in opokes:
+			self._cards.remove( p )
+		sort()
 if __name__ == '__main__':
 	a = Player( 1 )
 	a.sort()

@@ -8,6 +8,7 @@ class TableManager:
 		self._free_table_id = []
 		self._table_mapping = dict()
 		self._game_logic = game_logic
+		self._user_table_map = dict()
 	def get_waiting_table( self ):
 		return self._waiting_table
 
@@ -26,9 +27,17 @@ class TableManager:
 			new_table.add_player( user_id )
 			self._table_mapping[ table_id ] = new_table
 			self._waiting_table = table_id
+			self._user_table_map[ user_id ] = table_id
 		if self._table_mapping[ table_id ].player_full():
 			self._waiting_table = -1;
 			self.start_game( table_id )
+	def player_out_pokes( self , uid , pokes ):
+		if uid not in self._user_table_map:
+			print "user: %d not in mapping table" %(uid)
+			return 
+		table_id = self._user_table_map[ uid ]
+		self._table_mapping[ table_id ].player_out_pokes( uid , pokes )
+
 
 	def start_game( self , table_id ):
 		self._game_logic.notify_game_start( self._table_mapping[ table_id ].get_players() )
@@ -46,6 +55,12 @@ class Table:
 		return len(self._players) == 3
 	def get_players( self ):
 		return self._players
+	def player_out_pokes( self , uid , pokes ):
+		for player in self._players:
+			if ( plery.get_id() == uid ):
+				player.out_pokes( pokes )
+				break
+		self._game_logic.send_out_pokes_result()
 if __name__ == '__main__':
 	tm = None
 	if tm is None:
