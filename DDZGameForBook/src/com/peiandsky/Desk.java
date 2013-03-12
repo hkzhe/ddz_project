@@ -12,6 +12,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.util.Log;
 import org.json.*;
+import java.util.HashMap;
 
 public class Desk {
 	public static int winId = -1;
@@ -48,6 +49,7 @@ public class Desk {
 	public static Card currentCard = null;// 最新的一手牌
 
 	public int[][] personPokes = new int[3][17];
+	private HashMap<Integer,String> _userIDMap;
 
 	// gaming
 	private int timeLimite = 310;
@@ -56,6 +58,7 @@ public class Desk {
 	private int opPosY = 200;
 	private boolean _gotPokesInfo ;
 	private String _userID;
+	private int _myPos;
 
 	DDZ ddz;
 
@@ -75,6 +78,7 @@ public class Desk {
 		threePokes = new int[3];
 		
 		_userID = "0";
+		_myPos = 0;
 	}
 	public boolean gotPokesInfo() {
 		return this._gotPokesInfo;		
@@ -94,26 +98,41 @@ public class Desk {
 		try {
 			JSONArray users = json.getJSONArray( "users" );
 			int ulen = users.length();
-			int cur_user = 0;
+			if ( ulen > 3 ) {
+				ulen = 3;
+			}
+
 			for ( int i = 0 ; i < ulen ; i ++ ) {
 				String uid = users.getString( i );
 				Log.d( GameCommon.LOG_FLAG , "get uid = " + uid );
 				JSONArray pokes = json.getJSONArray( uid );
+				//_userIDMap.put( i , uid );
 				for ( int j = 0 ; j < pokes.length() ; j ++ ) {
-					personPokes[ cur_user ][j] = pokes.getInt( j );					
+					personPokes[ i ][j] = pokes.getInt( j );					
 				}	
-				++ cur_user;
+				if ( uid == _userID ) {
+					_myPos = i;
+				}
 			}
 			JSONArray threeLeftPokes = json.getJSONArray( "three_left" );
 			for( int i = 0 ; i < threeLeftPokes.length() ; i ++ ) 
 			{
 				threePokes[ i ] = threeLeftPokes.getInt( i );
 			}
-			persons[0] = new Person(personPokes[0], 234, 96, PokeType.dirH, 0,
+			int []pokeTypeArr = new int[3] ;
+			for ( int i = 0 ; i < 3 ; i ++ ) {
+				if ( _myPos == i ) {
+					pokeTypeArr[ i ] = PokeType.dirH;
+				}else {
+					pokeTypeArr[ i ] = PokeType.dirV;
+				}
+			}
+			
+			persons[0] = new Person(personPokes[0], 234, 96, pokeTypeArr[0], 0,
 					this, ddz);
-			persons[1] = new Person(personPokes[1], 54, 28, PokeType.dirV, 1, this,
+			persons[1] = new Person(personPokes[1], 54, 28, pokeTypeArr[1] , 1, this,
 					ddz);
-			persons[2] = new Person(personPokes[2], 54, 417, PokeType.dirV, 2,
+			persons[2] = new Person(personPokes[2], 54, 417, pokeTypeArr[2] , 2,
 					this, ddz);
 			persons[0].setPosition(persons[1], persons[2]);
 			persons[1].setPosition(persons[2], persons[0]);
@@ -459,7 +478,7 @@ public class Desk {
 
 		if (Poke.inRect(x, y, opPosX, opPosY, 38, 23)) {
 			Log.d( GameCommon.LOG_FLAG , "player click chupai ");
-			Card card = persons[0].chupai(currentCard);
+			Card card = persons[ _myPos ].chupai(currentCard);
 			if (card != null) {
 				currentCard = card;
 				currentCircle++;
@@ -499,17 +518,7 @@ public class Desk {
 
 	// 定位下一个人的id并重新倒计时
 	private void nextPerson() {
-		switch (currentPerson) {
-		case 0:
-			currentPerson = 2;
-			break;
-		case 1:
-			currentPerson = 0;
-			break;
-		case 2:
-			currentPerson = 1;
-			break;
-		}
+		currentPerson = (currentPerson + 1 ) % 3; 
 		timeLimite = 310;
 	}
 }
