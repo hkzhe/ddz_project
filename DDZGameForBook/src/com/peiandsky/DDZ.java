@@ -17,7 +17,6 @@ public class DDZ extends Activity {
 	public static  DDZ ddz;
 	private GameView gv;
 	private MenuView mv;
-	public NetworkManager network;
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -28,11 +27,6 @@ public class DDZ extends Activity {
 		ddz=this;
 		gv=new GameView(this,this);
 		mv=new MenuView(this,this);
-		network = new NetworkManager( "10.0.2.2" , 8000 );
-		boolean init_succ = network.initNetwork();
-		if ( init_succ ) {
-			Log.d( GameCommon.LOG_FLAG , "init network success ");
-		}
 		setContentView(mv);
 	}
 

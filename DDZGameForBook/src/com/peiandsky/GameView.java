@@ -12,6 +12,11 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnTouchListener;
 import android.util.Log;
+import java.nio.ByteBuffer;
+import java.util.concurrent.*;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.io.*;
+import java.net.*;
 
 public class GameView extends SurfaceView implements SurfaceHolder.Callback,
 		OnTouchListener {
@@ -25,6 +30,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,
 	Canvas canvas;
 
 	Bitmap gameBack;
+	NetworkManager _network;
+	Socket _socket;
+	BlockingQueue<String> _bufferQueue;
+	
 	Thread gameThread = new Thread() {
 		@Override
 		public void run() {
@@ -47,7 +56,20 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,
 			}
 		}
 	};
-	Thread networkThread = new Thread(){
+	public GameView(Context context, DDZ ddz) {
+		super(context);
+		this.ddz = ddz;
+		desk = new Desk(ddz);
+		_bufferQueue = new LinkedBlockingQueue<String>();
+		_network = new NetworkManager("10.0.2.2" , 8000  );
+		Socket _socket = _network.initNetwork();
+		gameBack = BitmapFactory.decodeResource(getResources(), R.drawable.vbg2);
+		this.getHolder().addCallback(this);
+		this.setOnTouchListener(this);
+	}
+
+
+	/*Thread networkThread = new Thread(){
 		@Override
 		public void run() {			
 			while ( true ) {
@@ -69,20 +91,20 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,
 				}
 			}
 		}
-	};
+	};*/
+	public int bytesToInt(byte[] bytes) {
+		int num = bytes[0] & 0xFF;  
+	    num |= ((bytes[1] << 8) & 0xFF00);  
+	    num |= ((bytes[2] << 16) & 0xFF0000);  
+	    num |= ((bytes[3] << 24) & 0xFF000000);  
+	    return num;  
+	} 
 	protected void myDraw( Canvas canvas ) {
 		canvas.drawBitmap(gameBack, 0, 0, null);
 		desk.paint(canvas);
 	}
 
-	public GameView(Context context, DDZ ddz) {
-		super(context);
-		this.ddz = ddz;
-		desk=new Desk(ddz);
-		gameBack=BitmapFactory.decodeResource(getResources(), R.drawable.vbg2);
-		this.getHolder().addCallback(this);
-		this.setOnTouchListener(this);
-	}
+
 
 	@Override
 	protected void onDraw(Canvas canvas) {
@@ -93,16 +115,41 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,
 
 	@Override
 	public void surfaceChanged(SurfaceHolder holder, int format, int width,
-			int height) {
-
+			int height) {}
+	private byte[] serializeInt( int n ) {
+		byte by[] = new byte[4];
+		by[3] = (byte)(0xff & (n >> 24));
+        by[2] = (byte)(0xff & (n >> 16)); 
+        by[1] = (byte)(0xff & (n >> 8)); 
+        by[0] = (byte)(0xff & n) ;
+        return by;
+	}
+	public void login( String userID )
+	{
+		JSONObject json = new JSONObject();
+		try {
+			json.put( "cmd", "login" );
+			json.put( "userID" , userID );
+		}catch (JSONException e) {
+			Log.e( GameCommon.LOG_FLAG , "build json object exception");
+			return ;
+		}
+		String jstr = json.toString();
+		int len = jstr.length();
+		byte[] by = serializeInt( len );
+		String head_str = new String( by );
+		
+		_bufferQueue.add( head_str + jstr );
 	}
 
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
-		threadFlag=true;
-		gameThread.start();
-		networkThread.start();
-		
+		threadFlag = true;
+		gameThread.start();		
+		//new Thread( _network ).start();
+		//new Thread( new NetRecvThread( _socket , _bufferQueue ) ).start();
+		new Thread( new NetSendThread( _socket , _bufferQueue ) ).start();
+		login( "0" );
 	}
 
 	@Override

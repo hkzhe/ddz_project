@@ -41,8 +41,8 @@ if __name__ == '__main__':
 	cmd_dict = json.loads( cmd_str )
 	my_pokes = cmd_dict[ sys.argv[1] ]
 	boss_id = cmd_dict[ "boss" ]
-	if boss_id == sys.argv[1] :
-		send_out_cards( sock , my_pokes )
+	#if boss_id == sys.argv[1] :
+		#send_out_cards( sock , my_pokes )
 	recv_cmd( sock )
 
 	time.sleep(10)

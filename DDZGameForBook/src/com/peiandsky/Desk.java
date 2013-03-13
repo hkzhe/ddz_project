@@ -221,10 +221,14 @@ public class Desk {
 			}
 		}
 
-		// 游戏没有结束，继续。
-		// 如果本家ID是NPC，则执行语句中的操作
-		if (currentPerson == 1 || currentPerson == 2) {
-			if (timeLimite <= 300) {
+		// 如果本家不是本机用户,等待对方出牌
+		if ( currentPerson != _myPos )
+		{
+			if (timeLimite <= 300)
+			{
+				  try {
+			            wait(2000);
+			        } catch(InterruptedException e) { }
 				// 获取手中的牌中能够打过当前手牌
 				Card tempcard = persons[currentPerson].chupaiAI(currentCard , currentPerson );
 				if (tempcard != null) {
@@ -314,7 +318,8 @@ public class Desk {
 	}
 	
 	private void setBoss( int theBoss ) {
-		boss = theBoss;
+		//boss = theBoss;
+		boss = _myPos;
 		currentPerson = boss;
 		int[] newPersonPokes = new int[20];
 		for (int i = 0; i < 17; i++) {
@@ -454,6 +459,9 @@ public class Desk {
 	}
 
 	public void onTuch(View v, MotionEvent event) {
+		if ( !_gotPokesInfo) {
+			return ;
+		}
 		/*for (int i = 0; i < persons.length; i++) {
 			StringBuffer sb = new StringBuffer();
 			sb.append(i + " : ");

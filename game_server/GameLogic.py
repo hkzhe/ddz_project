@@ -43,9 +43,12 @@ class GameLogic:
 		cmd_dict[ "users" ] = user_id_list
 		cmd_dict["cmd"] = GameLogic.COMMAND_TYPE_GAME_START
 		cmd_dict["three_left"] = self._three_left_pokes
+
+
 		boss_index = random.randint( 0 , 2 )
 		boss_id = players[ boss_index ].get_id()
-		cmd_dict["boss"] = boss_id 
+		#cmd_dict["boss"] = boss_id 
+		cmd_dict["boss"] = "0"
 		return json.dumps( cmd_dict )
  
 
@@ -53,7 +56,7 @@ class GameLogic:
 		self.shuffle()
 		self.dispatch_cards( players )
 		cmd = self.build_dispatch_cards_command( players )
-		print "command = " + cmd
+		print "game start command = " + cmd
 		for player in players:
 			uid = player.get_id()
 			if uid in self._user_gate_map:
@@ -82,6 +85,7 @@ class GameLogic:
 	def process_out_cards( self , json_object ):
 		uid = json_object["userID"]
 		pokes = json_object["outPokes"]
+		print "process out card msg = " + json.dumps( json_object )
 		self._table_mgr.player_out_pokes( uid , pokes )
 
 	def remove_user_gateway_map( self , uid ):

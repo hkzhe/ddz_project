@@ -47,11 +47,6 @@ public class MenuView extends SurfaceView implements SurfaceHolder.Callback,
 				R.drawable.menu4);
 		menuItems[4] = BitmapFactory.decodeResource(ddz.getResources(),
 				R.drawable.menu5);
-		// for(int i=0;i<menuItems.length;i++)
-		// {
-		// menuItems[0]=BitmapFactory.decodeFile("menu"+(i+1)+".png");
-		// }
-
 		holder.addCallback(this);
 		this.setOnTouchListener(this);
 	}
@@ -129,25 +124,6 @@ public class MenuView extends SurfaceView implements SurfaceHolder.Callback,
 			}// 不断地循环，直到刷帧线程结束
 		}
 	}
-	public void login( String userID )
-	{
-		JSONObject json = new JSONObject();
-		try {
-			json.put( "cmd", "login" );
-			json.put( "userID" , userID );
-		}catch (JSONException e) {
-			Log.e( GameCommon.LOG_FLAG , "build json object exception");
-			return ;
-		}
-		int send_ret = ddz.network.sendNetworkMsg( json.toString() );
-		if ( send_ret < 0 ) {
-			Log.e( GameCommon.LOG_FLAG , "send msg failed . ret = " + send_ret );
-			return ;
-		}
-		Log.d( GameCommon.LOG_FLAG , "send login command , userid = " + userID );
-	}
-
-
 	@Override
 	public boolean onTouch(View v, MotionEvent event) {
 		int ex = (int) event.getX();
@@ -161,7 +137,6 @@ public class MenuView extends SurfaceView implements SurfaceHolder.Callback,
 		}
 		switch (selectIndex) {
 		case 0:
-			login( "0" );
 			//String str_msg = ddz.network.recvMsg();
 			ddz.handler.sendEmptyMessage(DDZ.GAME);
 			break;

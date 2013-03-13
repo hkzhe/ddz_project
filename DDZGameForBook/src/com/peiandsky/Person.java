@@ -142,7 +142,7 @@ public class Person {
 			list.add( pokes[i] );			
 		}
 		try {
-			json.put( "cmd", "showcard" );
+			json.put( "cmd", "outcard" );
 			json.put( "userID" , user );
 			json.put( "outPokes", list );
 		}catch (JSONException e) {
@@ -157,7 +157,7 @@ public class Person {
 		JSONObject js = buildJSONObject( card , user );
 		String postString = js.toString();
 		Log.d(GameCommon.LOG_FLAG , "post string = " + postString );
-		ddz.network.sendNetworkMsg( postString );		
+		//ddz.network.sendNetworkMsg( postString );		
 	}
 
 	public Card chupai(Card card) {
