@@ -14,7 +14,6 @@ import android.view.View.OnTouchListener;
 import android.util.Log;
 import java.nio.ByteBuffer;
 import java.util.concurrent.*;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.io.*;
 import java.net.*;
 
@@ -32,18 +31,36 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,
 	Bitmap gameBack;
 	NetworkManager _network;
 	Socket _socket;
-	BlockingQueue<String> _bufferQueue;
+	BlockingQueue<String> _sendBufferQueue;
+	BlockingQueue<String> _recvBufferQueue;
 	
 	Thread gameThread = new Thread() {
 		@Override
 		public void run() {
-			holder=getHolder();
+			holder = getHolder();
 			while(threadFlag)
 			{
+				if ( !desk.gotPokesInfo() ) {
+					if ( !_recvBufferQueue.isEmpty() ) {
+						try {
+							String recv_msg = _recvBufferQueue.take();
+							try {
+								Log.d( GameCommon.LOG_FLAG , "got recv msg = " + recv_msg );
+								JSONObject json = new JSONObject( recv_msg );
+								if ( json.getInt("cmd") == 1 ) {
+									desk.setCardsInfo( json );								
+								}
+							}catch( JSONException e ) {
+								Log.e( GameCommon.LOG_FLAG , "catch json exception , msg = " + recv_msg );
+								continue;
+							}
+						}catch( InterruptedException e ) {}
+					}
+				
+				}
 				desk.gameLogic();
 				try {
 					canvas = holder.lockCanvas();
-					//onDraw(canvas);
 					myDraw( canvas );
 				} finally {
 					holder.unlockCanvasAndPost(canvas);
@@ -60,69 +77,24 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,
 		super(context);
 		this.ddz = ddz;
 		desk = new Desk(ddz);
-		_bufferQueue = new LinkedBlockingQueue<String>();
-		_network = new NetworkManager("10.0.2.2" , 8000  );
-		Socket _socket = _network.initNetwork();
+		
+		_sendBufferQueue = new LinkedBlockingQueue<String>();
+		_recvBufferQueue = new LinkedBlockingQueue<String>();
+		_network = new NetworkManager( "10.0.2.2" , 8000 );
+		_socket = _network.initNetwork();
+		new Thread( new NetRecvThread( _socket , _recvBufferQueue ) ).start();
+		new Thread( new NetSendThread( _socket , _sendBufferQueue ) ).start();
+		new Thread( new MessageProcesser( _recvBufferQueue ) ).start() ;
+		
 		gameBack = BitmapFactory.decodeResource(getResources(), R.drawable.vbg2);
 		this.getHolder().addCallback(this);
 		this.setOnTouchListener(this);
 	}
-
-
-	/*Thread networkThread = new Thread(){
-		@Override
-		public void run() {			
-			while ( true ) {
-				String recvMsg = ddz.network.recvMsg();
-				try {
-					JSONObject json = new JSONObject( recvMsg );
-					int cmd = json.getInt("cmd");
-					if ( cmd == COMMAND_START_GAME ) {
-						//start game
-						desk.setCardsInfo( json );
-					}
-					else {
-						Log.e( GameCommon.LOG_FLAG , "get command : " + cmd );
-					}
-				}catch( JSONException e ) {
-					e.printStackTrace();
-					Log.e( GameCommon.LOG_FLAG , "get json object from string : " + recvMsg + " failed");
-					break;
-				}
-			}
-		}
-	};*/
-	public int bytesToInt(byte[] bytes) {
-		int num = bytes[0] & 0xFF;  
-	    num |= ((bytes[1] << 8) & 0xFF00);  
-	    num |= ((bytes[2] << 16) & 0xFF0000);  
-	    num |= ((bytes[3] << 24) & 0xFF000000);  
-	    return num;  
-	} 
-	protected void myDraw( Canvas canvas ) {
-		canvas.drawBitmap(gameBack, 0, 0, null);
-		desk.paint(canvas);
-	}
-
-
-
 	@Override
-	protected void onDraw(Canvas canvas) {
-//		System.out.println("in method onDraw");
-		canvas.drawBitmap(gameBack, 0, 0, null);
-		desk.paint(canvas);
-	}
-
-	@Override
-	public void surfaceChanged(SurfaceHolder holder, int format, int width,
-			int height) {}
-	private byte[] serializeInt( int n ) {
-		byte by[] = new byte[4];
-		by[3] = (byte)(0xff & (n >> 24));
-        by[2] = (byte)(0xff & (n >> 16)); 
-        by[1] = (byte)(0xff & (n >> 8)); 
-        by[0] = (byte)(0xff & n) ;
-        return by;
+	public void surfaceCreated(SurfaceHolder holder) {
+		threadFlag = true;
+		gameThread.start();		
+		login( "0" );
 	}
 	public void login( String userID )
 	{
@@ -136,21 +108,34 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,
 		}
 		String jstr = json.toString();
 		int len = jstr.length();
-		byte[] by = serializeInt( len );
+		byte[] by = GameCommon.serializeInt( len );
 		String head_str = new String( by );
-		
-		_bufferQueue.add( head_str + jstr );
+		String msg = head_str + jstr;	
+		try {
+			_sendBufferQueue.put( msg );
+			//Log.d( GameCommon.LOG_FLAG , "put msg in send buffer queue ");
+		}catch (InterruptedException iex) {
+		}
+	}
+
+	protected void myDraw( Canvas canvas ) {
+		canvas.drawBitmap(gameBack, 0, 0, null);
+		desk.paint(canvas);
+	}
+
+
+
+	@Override
+	protected void onDraw(Canvas canvas) {
+
+		canvas.drawBitmap(gameBack, 0, 0, null);
+		desk.paint(canvas);
 	}
 
 	@Override
-	public void surfaceCreated(SurfaceHolder holder) {
-		threadFlag = true;
-		gameThread.start();		
-		//new Thread( _network ).start();
-		//new Thread( new NetRecvThread( _socket , _bufferQueue ) ).start();
-		new Thread( new NetSendThread( _socket , _bufferQueue ) ).start();
-		login( "0" );
-	}
+	public void surfaceChanged(SurfaceHolder holder, int format, int width,
+			int height) {}
+
 
 	@Override
 	public void surfaceDestroyed(SurfaceHolder holder) {
@@ -170,7 +155,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,
 		if( event.getAction() != MotionEvent.ACTION_UP ) {
 			return true;
 		}
-	//	System.out.println(event.getX() + "  " + event.getY()+"-"+(event.getAction()==MotionEvent.ACTION_UP));
 		desk.onTuch(v, event);
 //		threadFlag=!threadFlag;
 		return true;

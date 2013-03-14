@@ -11,42 +11,65 @@ import java.util.concurrent.*;
 import android.util.Log;
 public class NetRecvThread implements Runnable {
 	private Socket _socket;
-	BlockingQueue<ByteBuffer> _queue;
-	//BlockingQueue<String> _queue;
-	public NetRecvThread( Socket s , BlockingQueue<ByteBuffer> asyncQueue ) {
+	//BlockingQueue<ByteBuffer> _queue;
+	BlockingQueue<String> _queue;
+	InputStream _inputStream;
+	public NetRecvThread( Socket s , BlockingQueue<String> asyncQueue ) {
+		//_inputStream = ins;
 		_socket = s;
 		_queue  = asyncQueue;
+		try {
+			_inputStream = _socket.getInputStream() ;
+		}catch( IOException e ) {
+			Log.e( GameCommon.LOG_FLAG , "get io exception");
+			e.printStackTrace();
+		}
 	}
-	private int bytesToInt(byte[] bytes) {
-		int num = bytes[0] & 0xFF;  
-	    num |= ((bytes[1] << 8) & 0xFF00);  
-	    num |= ((bytes[2] << 16) & 0xFF0000);  
-	    num |= ((bytes[3] << 24) & 0xFF000000);  
-	    return num;  
-	} 
+	private byte[] readData( int need ) {
+		byte[] b = new byte[ need ];
+		int tot = need;
+		int cur_read = 0;
+		try {
+			while ( cur_read < tot ) {
+				int n = _inputStream.read( b , cur_read , tot - cur_read );
+				if ( n < 0 ) {
+					return null ;
+				}
+				cur_read += n;
+			}
+			return b ;
+		}catch( IOException e ) {
+			Log.e( GameCommon.LOG_FLAG , "get io exception");
+			return null ;
+		}
+	}
+	private int readHead() {
+		byte[]b = readData( 4 );
+		if ( b == null ) {
+			return -1;
+		}
+		return GameCommon.bytesToInt( b );
+	}
 	@Override
     public void run() {
-		while ( true ) {
-			try {
-				InputStream ins = _socket.getInputStream() ;
-				byte[] b = new byte[4];
-				int n = ins.read( b , 0 , 4 );
-				if ( n < 0 ) {
-					Log.i( GameCommon.LOG_FLAG , "read msg head len failed ");
-					continue;
+		while ( !_socket.isClosed() ) {
+			try {			
+				int cmd_len = readHead();
+				if ( cmd_len < 0 ) {
+					Log.e( GameCommon.LOG_FLAG , "read head error");
+					break;
 				}
-				int cmd_len = bytesToInt( b );			
-				byte[] cmd_byte = new byte[ cmd_len ];
-				n = ins.read( cmd_byte , 0 , cmd_len );
-				if ( n < 0 ) {
-					Log.i( GameCommon.LOG_FLAG , "read msg body failed ");
-					continue;
-				}	
-				ByteBuffer bb = ByteBuffer.allocate( cmd_len ); 
-				_queue.add( bb );
-			}catch( IOException e ) {
-				Log.e( GameCommon.LOG_FLAG , "get io exception");
-				e.printStackTrace();
+				byte[] cmd_byte = readData( cmd_len );
+				if ( cmd_byte == null ) {
+					break;
+				}
+				String bb = GameCommon.bytesToString( cmd_byte );
+				Log.d( GameCommon.LOG_FLAG , "get recv string = " + bb ); 
+				try {
+					_queue.put( bb );
+				}catch( InterruptedException e ){
+					Log.e( GameCommon.LOG_FLAG , "put string to queue meet exception : " + bb );
+				}
 			}catch( NullPointerException e ) {
 				Log.e(GameCommon.LOG_FLAG , "get null pointer exception");
 				break;

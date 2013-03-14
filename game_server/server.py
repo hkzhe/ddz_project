@@ -45,6 +45,7 @@ class GameServer(SocketServer.BaseRequestHandler):
                 msg_len = msg_len[0]
                 if  msg_len < 4 or msg_len > 10240 :
                     print "msg len error , len = %d" %( msg_len )
+                    continue
                 self.data = self.request.recv( msg_len )
                 jobject = json.loads( self.data )
                 self.process_cmd( jobject )
@@ -53,8 +54,11 @@ class GameServer(SocketServer.BaseRequestHandler):
                 break
         self.request.close()           
         print 'Disconnected from', self.client_address   
-        if game_mgr is not None:
-            game_mgr.remove_user_gateway_map( self._user_id ) 
+        if game_mgr is not None :
+            if hasattr( self , '_user_id'):
+                game_mgr.remove_user_gateway_map( self._user_id ) 
+            else:
+                print 'this user not loggin '
 
     
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):pass  
