@@ -64,7 +64,7 @@ public class NetRecvThread implements Runnable {
 					break;
 				}
 				String bb = GameCommon.bytesToString( cmd_byte );
-				Log.d( GameCommon.LOG_FLAG , "get recv string = " + bb ); 
+				//Log.d( GameCommon.LOG_FLAG , "get recv string = " + bb ); 
 				try {
 					_queue.put( bb );
 				}catch( InterruptedException e ){

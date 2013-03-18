@@ -13,6 +13,7 @@ import android.view.View;
 import android.util.Log;
 import org.json.*;
 import java.util.HashMap;
+import java.util.concurrent.BlockingQueue;
 
 public class Desk {
 	public static int winId = -1;
@@ -61,8 +62,9 @@ public class Desk {
 	private int _myPos;
 
 	DDZ ddz;
+	BlockingQueue<String> _sendQueue;
 
-	public Desk(DDZ ddz) {
+	public Desk(DDZ ddz , BlockingQueue<String> queue ) {
 		this.ddz = ddz;
 		pokeImage = BitmapFactory.decodeResource(ddz.getResources(),
 				R.drawable.poker3552);
@@ -79,6 +81,7 @@ public class Desk {
 		
 		_userID = "0";
 		_myPos = 0;
+		_sendQueue = queue;
 	}
 	public boolean gotPokesInfo() {
 		return this._gotPokesInfo;		
@@ -104,7 +107,7 @@ public class Desk {
 
 			for ( int i = 0 ; i < ulen ; i ++ ) {
 				String uid = users.getString( i );
-				Log.d( GameCommon.LOG_FLAG , "get uid = " + uid );
+				//Log.d( GameCommon.LOG_FLAG , "get uid = " + uid );
 				JSONArray pokes = json.getJSONArray( uid );
 				//_userIDMap.put( i , uid );
 				for ( int j = 0 ; j < pokes.length() ; j ++ ) {
@@ -122,6 +125,7 @@ public class Desk {
 			int []pokeTypeArr = new int[3] ;
 			for ( int i = 0 ; i < 3 ; i ++ ) {
 				if ( _myPos == i ) {
+					//本机用户绘制正面
 					pokeTypeArr[ i ] = PokeType.dirH;
 				}else {
 					pokeTypeArr[ i ] = PokeType.dirV;
@@ -226,9 +230,6 @@ public class Desk {
 		{
 			if (timeLimite <= 300)
 			{
-				  try {
-			            wait(2000);
-			        } catch(InterruptedException e) { }
 				// 获取手中的牌中能够打过当前手牌
 				Card tempcard = persons[currentPerson].chupaiAI(currentCard , currentPerson );
 				if (tempcard != null) {
@@ -486,7 +487,7 @@ public class Desk {
 
 		if (Poke.inRect(x, y, opPosX, opPosY, 38, 23)) {
 			Log.d( GameCommon.LOG_FLAG , "player click chupai ");
-			Card card = persons[ _myPos ].chupai(currentCard);
+			Card card = persons[ _myPos ].chupai(currentCard , _sendQueue );
 			if (card != null) {
 				currentCard = card;
 				currentCircle++;
@@ -527,6 +528,7 @@ public class Desk {
 	// 定位下一个人的id并重新倒计时
 	private void nextPerson() {
 		currentPerson = (currentPerson + 1 ) % 3; 
+		Log.d( GameCommon.LOG_FLAG , "next person = " + currentPerson );
 		timeLimite = 310;
 	}
 }

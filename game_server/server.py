@@ -7,10 +7,18 @@ import GameLogic
 import Player
 import socket
 import thread
+import Queue
+import logging
+import os
+import json
+logging.basicConfig(filename = os.path.join(os.getcwd(), 'log.txt'), level = logging.DEBUG , 
+                format = '%(asctime)s - %(levelname)s: %(message)s') 
 
 COMMAND_TYPE_LOGIN=1
 COMMAND_TYPE_CHUPAI=2
-game_mgr = None
+recv_msg_queue = None
+send_msg_queue = None
+user_server_map = {}
 class GameServer(SocketServer.BaseRequestHandler):  
     def send_cmd( self , cmd_body ):
         cmd_len = len( cmd_body )
@@ -18,19 +26,14 @@ class GameServer(SocketServer.BaseRequestHandler):
         self.request.sendall( command_head );
         self.request.sendall( cmd_body ) 
         print "send command complete "
-    def process_cmd(self,jobject):
-        global game_mgr
+    def process_cmd(self, recv_data):
+        jobject = json.loads( recv_data )
         if jobject["cmd"] == "login" :
             self._user_id = jobject["userID"]
-            if game_mgr is None:
-                game_mgr =  GameLogic.GameLogic( self )
-            game_mgr.process_user_login( self , jobject )
-        elif jobject["cmd"] == "outcard":
-            uid = jobject["userID"]
-            pokes = jobject["outPokes"]
-            if game_mgr is None:
-                print "error , user not loggin : %d" %( u )
-            game_mgr.process_out_cards( jobject )
+            global user_server_map
+            user_server_map[ self._user_id ] = self 
+        global recv_msg_queue
+        recv_msg_queue.put( jobject )
     def handle(self):          
         while True:
             try:
@@ -47,8 +50,7 @@ class GameServer(SocketServer.BaseRequestHandler):
                     print "msg len error , len = %d" %( msg_len )
                     continue
                 self.data = self.request.recv( msg_len )
-                jobject = json.loads( self.data )
-                self.process_cmd( jobject )
+                self.process_cmd( self.data )
             except struct.error:
                 print "unpack data exception: " + self.data
                 break
@@ -60,14 +62,37 @@ class GameServer(SocketServer.BaseRequestHandler):
             else:
                 print 'this user not loggin '
 
-    
+class SendMsgThread(threading.Thread):
+    def __init__( self , send_queue , thread_name ):
+        self._send_queue = send_queue
+        self._log = logging.getLogger('SendMsgThread')  
+        self._log.setLevel(logging.DEBUG) 
+        super( SendMsgThread , self ).__init__( name = thread_name )
+    def run( self ) :
+        while True:
+            msg = self._send_queue.get()
+            json_obj = json.loads( msg )
+            uid = json_obj["to_user"]
+            if uid in user_server_map:
+                self._log.debug( "send to user : [%s] with cmd: %s" %( uid , msg ))
+                user_server_map[ json_obj["to_user"] ].send_cmd( msg )
+            self._send_queue.task_done()
+def initialize():
+    game_logic = None
+    global recv_msg_queue , send_msg_queue
+    recv_msg_queue = Queue.Queue()
+    send_msg_queue = Queue.Queue()
+    game_logic =  GameLogic.GameLogic( recv_msg_queue , send_msg_queue , "thread-process-msg"  )
+    game_logic.start()
+    SendMsgThread( send_msg_queue , "thread-send-msg").start()
+    srvr = SocketServer.ThreadingTCPServer( ("",8000)   , GameServer )
+    srvr.serve_forever()
+
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):pass  
 if __name__ == '__main__':
     print 'Server is started\nwaiting for connection...'   
     try:
-        srvr = SocketServer.ThreadingTCPServer( ("",8000)   , GameServer )
-        #game_mgr = GameLogic.GameLogic( GameServer )
-        srvr.serve_forever()
+        initialize()        
     except KeyboardInterrupt:  
         exit() 
    

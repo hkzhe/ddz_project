@@ -10,6 +10,7 @@ import android.view.View;
 import android.util.*;
 import org.json.*;
 import java.util.*;
+import java.util.concurrent.BlockingQueue;
 
 public class Person {
 	// 玩家手中的牌
@@ -128,7 +129,7 @@ public class Person {
 		this.pokes = newpokes;
 		Card thiscard = new Card(pokeWanted, pokeImage, id);
 		
-		postCardNetwork( thiscard , user );
+		//postCardNetwork( thiscard , user );
 		// 更新桌子最近一手牌
 		Desk.currentCard = thiscard;
 		this.card = thiscard;
@@ -152,15 +153,22 @@ public class Person {
 		return json;		
 	}
 	
-	public void postCardNetwork( Card card , int user ) {
+	public void postCardNetwork( Card card , int user , BlockingQueue<String> sendQ ) {
 		//把当前出的牌发到服务器上
 		JSONObject js = buildJSONObject( card , user );
 		String postString = js.toString();
-		Log.d(GameCommon.LOG_FLAG , "post string = " + postString );
-		//ddz.network.sendNetworkMsg( postString );		
+		int msg_len = postString.length();
+		byte[] by = GameCommon.serializeInt( msg_len );
+		String head_str = new String( by );
+		try {
+			sendQ.put( head_str + postString );
+			Log.d(GameCommon.LOG_FLAG , "post string = " + postString );
+		}catch( InterruptedException e ) {
+			Log.e( GameCommon.LOG_FLAG , "catch interrupt exception ");
+		}
 	}
 
-	public Card chupai(Card card) {
+	public Card chupai(Card card , BlockingQueue<String> sendQ) {
 		int count = 0;
 		for (int i = 0; i < pokes.length; i++) {
 			if (pokesFlag[i]) {
@@ -227,7 +235,7 @@ public class Person {
 			}
 		}
 		if ( chupai_succ ) {
-			postCardNetwork( thiscard , 0 );
+			postCardNetwork( thiscard , 0 , sendQ );
 			return thiscard;
 		}else {
 			return null;

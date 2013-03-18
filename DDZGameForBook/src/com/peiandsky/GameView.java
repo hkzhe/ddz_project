@@ -45,7 +45,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,
 						try {
 							String recv_msg = _recvBufferQueue.take();
 							try {
-								Log.d( GameCommon.LOG_FLAG , "got recv msg = " + recv_msg );
+								//Log.d( GameCommon.LOG_FLAG , "got recv msg = " + recv_msg );
 								JSONObject json = new JSONObject( recv_msg );
 								if ( json.getInt("cmd") == 1 ) {
 									desk.setCardsInfo( json );								
@@ -76,15 +76,16 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,
 	public GameView(Context context, DDZ ddz) {
 		super(context);
 		this.ddz = ddz;
-		desk = new Desk(ddz);
+		
 		
 		_sendBufferQueue = new LinkedBlockingQueue<String>();
+		desk = new Desk( ddz , _sendBufferQueue );
 		_recvBufferQueue = new LinkedBlockingQueue<String>();
-		_network = new NetworkManager( "10.0.2.2" , 8000 );
+		_network = new NetworkManager( "118.244.225.128" , 8000 );
 		_socket = _network.initNetwork();
 		new Thread( new NetRecvThread( _socket , _recvBufferQueue ) ).start();
 		new Thread( new NetSendThread( _socket , _sendBufferQueue ) ).start();
-		new Thread( new MessageProcesser( _recvBufferQueue ) ).start() ;
+		//new Thread( new MessageProcesser( _recvBufferQueue ) ).start() ;
 		
 		gameBack = BitmapFactory.decodeResource(getResources(), R.drawable.vbg2);
 		this.getHolder().addCallback(this);
