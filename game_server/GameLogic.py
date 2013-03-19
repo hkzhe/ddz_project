@@ -17,6 +17,11 @@ class GameLogic(threading.Thread):
 		self._three_left_pokes = [ i for i in range(3) ]
 		self._log = logging.getLogger('GameLogic')  
 		self._log.setLevel(logging.DEBUG) 
+		self._cmd_action = { 'login' : self.process_user_login , 
+							 'outcard' : self.process_out_cards,
+							 'remove_user' : self.remove_user ,
+		}
+
 		super( GameLogic , self ).__init__( name = thread_name )
 	def shuffle( self  ):
 		#对于54张牌中的任何一张，都随机找一张和它互换，将牌顺序打乱。
@@ -79,13 +84,15 @@ class GameLogic(threading.Thread):
 		pokes = json_object["outPokes"]
 		print "process out card msg = " + json.dumps( json_object )
 		self._table_mgr.player_out_pokes( uid , pokes )
+	def remove_user( self , json_object ):
+		remove_uid = json_object["userID"]
+		self._table_mgr.remove_user( remove_uid )
 	def run( self ) :
 		while True:
 			msg_object = self._recv_msg_queue.get()
 			cmd = msg_object['cmd']
-			if cmd == "login":
-				self.process_user_login( msg_object )
-			elif cmd == "outcard":
-				self.process_out_cards( msg_object )
-
+			if cmd in self._cmd_action:
+				self._cmd_action[ cmd ]( msg_object )
+			else:
+				self._log.error("recv unknown cmd : %s" %(cmd) )
 			self._recv_msg_queue.task_done()

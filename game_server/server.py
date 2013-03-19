@@ -19,13 +19,13 @@ COMMAND_TYPE_CHUPAI=2
 recv_msg_queue = None
 send_msg_queue = None
 user_server_map = {}
-class GameServer(SocketServer.BaseRequestHandler):  
+class GameServer(SocketServer.BaseRequestHandler):       
     def send_cmd( self , cmd_body ):
         cmd_len = len( cmd_body )
         command_head = struct.pack( "i" , cmd_len ) 
         self.request.sendall( command_head );
         self.request.sendall( cmd_body ) 
-        print "send command complete "
+        self._log.debug("send command complete ")
     def process_cmd(self, recv_data):
         jobject = json.loads( recv_data )
         if jobject["cmd"] == "login" :
@@ -34,14 +34,18 @@ class GameServer(SocketServer.BaseRequestHandler):
             user_server_map[ self._user_id ] = self 
         global recv_msg_queue
         recv_msg_queue.put( jobject )
-    def handle(self):          
+    def handle(self):    
+        hasLog = hasattr( self , '_log')
+        if not hasLog:
+            self._log = logging.getLogger('GameServer-%s' %(self))        
         while True:
             try:
                 self.data = self.request.recv( 4 ) 
                 if not self.data:
-                    print "recv data error"
+                    #self._log.error( "recv data error" )
                     break
             except socket.error:
+                #self._log.error("socket.error")
                 break
             try:
                 msg_len = struct.unpack( "i" , self.data )
@@ -54,13 +58,15 @@ class GameServer(SocketServer.BaseRequestHandler):
             except struct.error:
                 print "unpack data exception: " + self.data
                 break
-        self.request.close()           
-        print 'Disconnected from', self.client_address   
-        if game_mgr is not None :
-            if hasattr( self , '_user_id'):
-                game_mgr.remove_user_gateway_map( self._user_id ) 
-            else:
-                print 'this user not loggin '
+        self.request.close()
+        remove_dict = {
+            'cmd' : 'remove_user',
+            'userID' : self._user_id,
+        }           
+        global recv_msg_queue
+        recv_msg_queue.put( remove_dict )
+        #print 'user [%s] Disconnected from [%s]' %(self._user_id , self.client_address)
+        self._log.debug( 'user [%s] Disconnected from [%s]' %(self._user_id , self.client_address) ) 
 
 class SendMsgThread(threading.Thread):
     def __init__( self , send_queue , thread_name ):
