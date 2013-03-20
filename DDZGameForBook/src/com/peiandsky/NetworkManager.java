@@ -2,7 +2,6 @@ package com.peiandsky;
 
 import java.io.*;
 import java.net.*;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -23,19 +22,24 @@ public class NetworkManager implements Runnable {
 	ByteBuffer _readBuffer;
 	int  _remainDataCnt;
 	private Object _syncObject ;
-	BlockingQueue<ByteBuffer> _queue;
+	//BlockingQueue<ByteBuffer> _queue;
+	BlockingQueue<String> _recvQueue;
+	BlockingQueue<String> _sendQueue;
 	
-	public NetworkManager( String host , int port  )  {
+	public NetworkManager( String host , int port  , BlockingQueue<String> recvQueue , 
+										BlockingQueue<String> sendQueue )  {
 		_host = host;
 		_port = port;	
+		_recvQueue = recvQueue;
+		_sendQueue = sendQueue;
 		_sendBuffer = ByteBuffer.allocate( 2048 );
 		_readBuffer = ByteBuffer.allocate( 2048 );
 		_sendBuffer.clear();
 		_remainDataCnt = 0;
 		_syncObject = new Object();
 	}
-	public Socket initNetwork() {
-		try {  
+	public Boolean initNetwork() {
+		/*try {  
             _socket = new Socket( _host , _port ); 
             return _socket ;        
         } catch (UnknownHostException e) {  
@@ -46,8 +50,8 @@ public class NetworkManager implements Runnable {
             //e.printStackTrace();
         	Log.e( GameCommon.LOG_FLAG , "get io exception");
             return null ;
-        } 
-		/*try {
+        } */
+		try {
 			_socketChannel=SocketChannel.open(new InetSocketAddress(_host , _port));
 			_socketChannel.configureBlocking(false);
 			_selector = Selector.open();
@@ -57,44 +61,50 @@ public class NetworkManager implements Runnable {
         	Log.e( GameCommon.LOG_FLAG , "get io exception");
             return false;
 		}    
-	    return true;*/
+	    return true;
+	}
+	public void trySendMsg( SocketChannel sc ) {
+		if ( !_sendQueue.isEmpty() ) {
+			try {
+				String send_msg = _sendQueue.take();
+				_remainDataCnt = send_msg.length();
+				ByteBuffer bb = ByteBuffer.wrap( send_msg.getBytes() );
+				//int offset = 0;
+				if ( _remainDataCnt > 0 ) {
+					int send_cnt = sc.write( bb );
+					_remainDataCnt -= send_cnt;
+					Log.d( GameCommon.LOG_FLAG , "send " + send_cnt + " bytes data");
+				}
+			}catch( InterruptedException e ) {
+				Log.e( GameCommon.LOG_FLAG , "catch interrupted exception when get data from queue ");
+				return ;	        						
+			}catch( IOException e ) {
+				Log.e( GameCommon.LOG_FLAG , "catch ioexception when send data ");
+			}
+		}
 	}
 	@Override
     public void run() {
 		initNetwork();
-		Log.d( GameCommon.LOG_FLAG , "network init success");
-		
+		Log.d( GameCommon.LOG_FLAG , "network init success");		
 	    try {
 	        while ( true ) {
 	        	if ( _selector.select() > 0 )
 	        	{
-	        		// 遍历每个有可用IO操作Channel对应的SelectionKey
 	        		for (SelectionKey sk : _selector.selectedKeys()) 
 	        		{
 	        			SocketChannel sc = (SocketChannel) sk.channel();
-	        			if ( sk.isReadable() ) {         
-	        				Log.d( GameCommon.LOG_FLAG , "data readable " );
-	        				int read_cnt = sc.read( _readBuffer );
-	        				if ( read_cnt > 0 ) {
-	        					Log.d( GameCommon.LOG_FLAG , "recv data : " + read_cnt );
-	        					_queue.add( _readBuffer );
-	        					_readBuffer.flip();
-	        				}
-	        				sk.interestOps(SelectionKey.OP_READ);
+	        			if ( sk.isReadable() ) {
 	        			}            
 	        			if ( sk.isWritable() ) {
-	        				synchronized (_syncObject) {
-	        					while ( _remainDataCnt > 0 ) {
-	        						int send_cnt = sc.write( _sendBuffer );
-	        						_remainDataCnt -= send_cnt;
-	                		}
+	        				trySendMsg( sc );
 	        			}
 	        			_selector.selectedKeys().remove(sk);
 	        		}        		
 	        	  }
 	        	}
 	        }
-	      } catch (IOException ex) {
+	       catch (IOException ex) {
 	        ex.printStackTrace();
 	      }  
 	}

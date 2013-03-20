@@ -9,6 +9,7 @@ import logging
 
 class GameLogic(threading.Thread):
 	COMMAND_TYPE_GAME_START = 1
+	COMMAND_TYPE_PLAYER_OFFLINE = 5
 	def __init__( self , recv_queue , send_queue , thread_name ):
 		self._table_mgr = Table.TableManager( self )
 		self._recv_msg_queue = recv_queue
@@ -17,9 +18,10 @@ class GameLogic(threading.Thread):
 		self._three_left_pokes = [ i for i in range(3) ]
 		self._log = logging.getLogger('GameLogic')  
 		self._log.setLevel(logging.DEBUG) 
-		self._cmd_action = { 'login' : self.process_user_login , 
-							 'outcard' : self.process_out_cards,
-							 'remove_user' : self.remove_user ,
+		self._cmd_action = { 
+				'login' : self.process_user_login , 
+				'outcard' : self.process_out_cards,
+				'remove_user' : self.remove_user ,
 		}
 
 		super( GameLogic , self ).__init__( name = thread_name )
@@ -83,10 +85,24 @@ class GameLogic(threading.Thread):
 		uid = json_object["userID"]
 		pokes = json_object["outPokes"]
 		print "process out card msg = " + json.dumps( json_object )
+	def build_offline_command( self , offline_id ):
+		cmd_dict = {}
+		cmd_dict["cmd"] = GameLogic.COMMAND_TYPE_PLAYER_OFFLINE
+		cmd_dict["offline_player"] = offline_id
+		return cmd_dict
+
 		self._table_mgr.player_out_pokes( uid , pokes )
 	def remove_user( self , json_object ):
 		remove_uid = json_object["userID"]
-		self._table_mgr.remove_user( remove_uid )
+		self._log.debug("removing...[%s]" %(remove_uid))
+		player_list = self._table_mgr.remove_user( remove_uid )
+		for player in player_list:
+			if player.get_id() != remove_uid:
+				cmd_dict = self.build_offline_command( remove_uid )
+				cmd_dict["to_user"] = player.get_id()
+				send_msg = json.dumps( cmd_dict )
+				self._send_msg_queue.put( send_msg )
+				#self._log.debug( "send command to [%s] with [%s]" %( player.get_id() , send_msg) )
 	def run( self ) :
 		while True:
 			msg_object = self._recv_msg_queue.get()

@@ -73,6 +73,19 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,
 			}
 		}
 	};
+	Thread _networkThread = new Thread(){
+		@Override
+		public void run(){
+			String login_host = getResources().getString( R.string.login_host );
+			int login_port = getResources().getInteger( R.string.login_port );
+			//_network = new NetworkManager( login_host , login_port );
+			new Thread( new NetworkManager( login_host , login_port , _recvBufferQueue , _sendBufferQueue) ).start();
+			//_socket = _network.initNetwork();	
+			
+			//new Thread( new NetRecvThread( _socket , _recvBufferQueue ) ).start();
+			//new Thread( new NetSendThread( _socket , _sendBufferQueue ) ).start();
+		}
+	};
 	public GameView(Context context, DDZ ddz) {
 		super(context);
 		this.ddz = ddz;
@@ -80,16 +93,12 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,
 		
 		_sendBufferQueue = new LinkedBlockingQueue<String>();
 		desk = new Desk( ddz , _sendBufferQueue );
-		_recvBufferQueue = new LinkedBlockingQueue<String>();
-		_network = new NetworkManager( "118.244.225.128" , 8000 );
-		_socket = _network.initNetwork();
-		new Thread( new NetRecvThread( _socket , _recvBufferQueue ) ).start();
-		new Thread( new NetSendThread( _socket , _sendBufferQueue ) ).start();
-		//new Thread( new MessageProcesser( _recvBufferQueue ) ).start() ;
+		_recvBufferQueue = new LinkedBlockingQueue<String>();		
 		
 		gameBack = BitmapFactory.decodeResource(getResources(), R.drawable.vbg2);
 		this.getHolder().addCallback(this);
 		this.setOnTouchListener(this);
+		_networkThread.start();
 	}
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {

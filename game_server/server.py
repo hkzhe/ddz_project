@@ -60,7 +60,7 @@ class GameServer(SocketServer.BaseRequestHandler):
                 break
         self.request.close()
         remove_dict = {
-            'cmd' : 'remove_user',
+            'cmd'    : 'remove_user',
             'userID' : self._user_id,
         }           
         global recv_msg_queue
@@ -77,11 +77,18 @@ class SendMsgThread(threading.Thread):
     def run( self ) :
         while True:
             msg = self._send_queue.get()
-            json_obj = json.loads( msg )
+            try:
+                json_obj = json.loads( msg )
+            except:
+                self._log.error("exception while load msg: %s" %(msg))
             uid = json_obj["to_user"]
-            if uid in user_server_map:
-                self._log.debug( "send to user : [%s] with cmd: %s" %( uid , msg ))
-                user_server_map[ json_obj["to_user"] ].send_cmd( msg )
+            try:
+                if uid in user_server_map:
+                    self._log.debug( "send to user : [%s] with cmd: %s" %( uid , msg ))
+                    user_server_map[ json_obj["to_user"] ].send_cmd( msg )
+            except:
+                self._log.error("exception while send msg to user ")
+
             self._send_queue.task_done()
 def initialize():
     game_logic = None

@@ -58,15 +58,16 @@ class TableManager:
 	def remove_user( self , uid ):
 		if uid in self._user_table_map:
 			table_ins = self._user_table_map[ uid ]
-			do_remove = table_ins.remove_player( uid )
-			self._log.debug('remove user id [%s] , now table player count=[%d], remove result = [%d]' 
-				%( uid , table_ins.player_count() , do_remove) )
-			#如果这个桌子空了，那么回收
-			if do_remove:
-				self._user_table_map.pop( uid ) 
-			if table_ins.table_is_empty():
+			player_list = table_ins.get_players()
+			table_ins.remove_all_player()
+			table_id = table_ins.get_table_id()
+			if table_id in self._table_mapping:
 				self._table_mapping.pop( table_id )
 				self._free_table_id.append( table_id )
+			return player_list
+		else:
+			self._log.debug('no this user table map relation [%s]' %( uid ))
+			return None
 	
 
 	def finish_game( self , table_id ):
@@ -76,6 +77,8 @@ class Table:
 	def __init__(self , table_id):
 		self._players = []
 		self._id = table_id
+	def get_table_id( self ):
+		return self._id
 	def add_player( self , user_id ):
 		self._players.append( Player.Player(user_id) )
 	def remove_player( self , uid ):
@@ -88,6 +91,8 @@ class Table:
 				break
 			++ index
 		return do_remove
+	def remove_all_player( self ):
+		self._players = []
 	def player_full( self ):
 		return len(self._players) == 3
 	def table_is_empty( self ) :

@@ -2,4 +2,6 @@
 <resources>
     <string name="hello">Hello World, DDZ!</string>
     <string name="app_name">女仆斗地主</string>
+    <string name="login_host">10.0.2.2</string>
+    <string name="login_port">8000</Integer>
 </resources>
